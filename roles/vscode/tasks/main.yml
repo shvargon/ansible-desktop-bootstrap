@@ -1,0 +1,80 @@
+- name: Snap install vscode
+  community.general.snap:
+    name: code
+    classic: true
+
+- name: Check if Code/User directory exists
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.config/Code/User"
+  register: code_user_dir
+
+- name: Create settings directory
+  when: not code_user_dir.stat.exists
+  block:
+    - name: Ensure .config/Code directory exists with mode 0700
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config/Code"
+        state: directory
+        mode: '0700'
+        owner: "{{ ansible_env.USER }}"
+        group: "{{ ansible_env.USER }}"
+
+    - name: Adjust .config/Code/User directory permissions to 775
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.config/Code/User"
+        state: directory
+        mode: '0775'
+
+- name: Slurp existing settings.json if exists
+  ansible.builtin.slurp:
+    src: "{{ ansible_env.HOME }}/.config/Code/User/settings.json"
+  register: slurped_json
+  ignore_errors: true
+
+- name: Set default settings if file does not exist
+  ansible.builtin.set_fact:
+    vscode_settings: "{}"
+  when: slurped_json.failed is defined and slurped_json.failed
+
+- name: Parse existing JSON if file exists
+  ansible.builtin.set_fact:
+    vscode_settings: "{{ slurped_json.content | b64decode | from_json }}"
+  when: slurped_json is defined and not slurped_json.failed
+
+- name: Merge telemetry option into settings
+  ansible.builtin.set_fact:
+    vscode_settings: "{{ vscode_settings | combine({'telemetry.telemetryLevel': 'off'}, recursive=True) }}"
+
+- name: Write back updated settings.json
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.config/Code/User/settings.json"
+    content: "{{ vscode_settings | to_nice_json }}"
+    mode: '0644'
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+
+- name: Ensure skel .config/Code directory exists with mode 0700
+  become: true
+  ansible.builtin.file:
+    path: "/etc/skel/.config/Code"
+    state: directory
+    mode: '0700'
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+
+- name: Adjust skel .config/Code/User directory permissions to 775
+  become: true
+  ansible.builtin.file:
+    path: "/etc/skel/.config/Code/User"
+    state: directory
+    mode: '0775'
+
+- name: Skel vscode config file
+  become: true
+  ansible.builtin.copy:
+    dest: "/etc/skel/.config/Code/User/settings.json"
+    content: |
+      {
+        "telemetry.telemetryLevel": "off"
+      }
+    mode: "0775"

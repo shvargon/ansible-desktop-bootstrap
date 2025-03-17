@@ -1,0 +1,37 @@
+---
+- name: Update system
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: true
+
+- name: Install main utils
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - tmux
+      - htop
+      - iotop
+      - mc
+      - git
+      - curl
+      - wget
+      - nmap
+      - dnsutils
+      - p7zip-full
+      - rsync
+
+- name: Prepare eula
+  become: true
+  ansible.builtin.debconf:
+    name: ttf-mscorefonts-installer
+    question: msttcorefonts/accepted-mscorefonts-eula
+    vtype: boolean
+    value: true
+
+- name: Install media support
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - ttf-mscorefonts-installer
+      - ubuntu-restricted-extras

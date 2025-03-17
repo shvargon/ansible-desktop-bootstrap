@@ -1,0 +1,39 @@
+- name: Save google repo key
+  become: true
+  ansible.builtin.get_url:
+    url: https://dl.google.com/linux/linux_signing_key.pub
+    dest: "{{ chrome_key_path }}"
+    mode: "0644"
+
+- name: Add specified repository into sources list using specified filename
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main
+    state: present
+    filename: google-chrome
+    update_cache: true
+
+- name: Install google-chrome
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - google-chrome-stable
+
+- name: Create chrome policy dir
+  become: true
+  ansible.builtin.file:
+    name: /etc/opt/chrome/policies/managed/
+    state: directory
+    mode: '0755'
+
+- name: Configure group policy
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/opt/chrome/policies/managed/init_policy.json
+    content: |
+      {
+        "MetricsReportingEnabled": false,
+        "UrlKeyedAnonymizedDataCollectionEnabled": false,
+        "EnableDoNotTrack": true
+      }
+    mode: '0755'

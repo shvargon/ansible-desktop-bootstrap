@@ -1,0 +1,46 @@
+- name: Gather facts
+  ansible.builtin.setup:
+    gather_subset: "min"
+
+- name: Disable telemetry if system is Ubuntu-based
+  when: ansible_distribution == "Ubuntu"
+  block:
+    - name: Set target user and telemetry file name
+      ansible.builtin.set_fact:
+        target_user: "{{ ansible_facts['env']['USER'] }}"
+        telemetry_file: "ubuntu.{{ ansible_distribution_version.split('.')[0] }}.{{ ansible_distribution_version.split('.')[1] }}"
+
+    - name: Create .cache/ubuntu-report directory in /etc/skel
+      become: true
+      ansible.builtin.file:
+        path: "/etc/skel/.cache/ubuntu-report"
+        state: directory
+        mode: '0700'
+
+    - name: Place telemetry file into /etc/skel
+      become: true
+      ansible.builtin.template:
+        src: telemetry.j2
+        dest: "/etc/skel/.cache/ubuntu-report/{{ telemetry_file }}"
+        mode: '0444'
+
+    - name: Get home directory of {{ target_user }}
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+      register: user_info
+
+    - name: Create .cache/ubuntu-report directory for {{ target_user }}
+      ansible.builtin.file:
+        path: "{{ user_info.home }}/.cache/ubuntu-report"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Place telemetry file for {{ target_user }}
+      ansible.builtin.template:
+        src: telemetry.j2
+        dest: "{{ user_info.home }}/.cache/ubuntu-report/{{ telemetry_file }}"
+        mode: '0444'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"

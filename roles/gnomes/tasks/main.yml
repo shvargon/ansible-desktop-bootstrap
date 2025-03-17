@@ -1,0 +1,51 @@
+- name: Install dconf editor
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - dconf-editor
+
+  # smb support for nautilus install?
+
+- name: Configure dconf dir
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/dconf/profile/user
+    mode: '0644'
+    content: |
+      user-db:user
+      system-db:local
+
+- name: Create a directory if it does not exist
+  become: true
+  ansible.builtin.file:
+    path: /etc/dconf/db/local.d
+    state: directory
+    mode: '0755'
+
+- name: Configure gnome
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/dconf/db/local.d/00-gnome
+    mode: '0644'
+    content: |
+      [org/gnome/desktop/interface]
+      enable-hot-corners=true
+
+- name: Configure gnome custom keybind
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/dconf/db/local.d/10-keybind
+    mode: '0644'
+    content: |
+      [org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/explorer]
+      name='Explorer'
+      command='nautilus'
+      binding='<Super>e'
+
+      [org/gnome/settings-daemon/plugins/media-keys]
+      custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/explorer/']
+
+- name: Update config
+  become: true
+  ansible.builtin.command: dconf update
+  changed_when: false

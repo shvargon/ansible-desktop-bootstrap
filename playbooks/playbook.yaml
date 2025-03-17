@@ -1,0 +1,50 @@
+---
+- name: Init OS
+  hosts: all
+  roles:
+    - maintools
+    - telemetry-os
+    - gnomes
+    - translate
+    - libvirt
+    - chrome
+    - flatpak
+
+  tasks:
+    - name: Set timezone to Asia/Krasnoyarsk
+      become: true
+      community.general.timezone:
+        name: Asia/Krasnoyarsk
+
+- name: Install main ui app
+  hosts: all
+  tasks:
+    - name: Install gnome-tweaks
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - gnome-tweaks
+
+    - name: Snap install messanger
+      become: true
+      community.general.snap:
+        name:
+          - telegram-desktop
+
+  roles:
+    - vscode
+
+- name: Flatpak install package
+  hosts: all
+  tasks:
+    - name: Install gnome extension manager
+      community.general.flatpak:
+        method: user
+        name:
+          - com.mattjakeman.ExtensionManager
+
+- name: Install docker
+  hosts: all
+  become: true
+  roles:
+    - docker

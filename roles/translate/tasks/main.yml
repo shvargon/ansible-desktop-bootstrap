@@ -1,0 +1,28 @@
+---
+- name: Install russian language support
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - hunspell-ru
+      - hyphen-ru
+      - mythes-ru
+      - language-pack-ru
+      - language-pack-gnome-ru
+      - gnome-user-docs-ru
+
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Install libreoffice translate
+  ansible.builtin.apt:
+    pkg:
+      - libreoffice-help-ru
+      - libreoffice-l10n-ru
+  when: "'libreoffice-base-core' in ansible_facts.packages"
+
+- name: Install thunderbird translate
+  ansible.builtin.apt:
+    pkg:
+      - thunderbird-locale-ru
+  when: "'thunderbird' in ansible_facts.packages"

@@ -1,0 +1,16 @@
+---
+- name: Install virt
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - qemu-kvm
+      - libvirt-daemon-system
+      - virt-manager
+
+- name: Add my user to libvirt group
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_facts['env']['SUDO_USER'] }}"
+    append: true
+    groups: 
+      - libvirt
